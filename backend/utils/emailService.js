@@ -1,41 +1,27 @@
-import nodemailer from 'nodemailer';
+import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
-
-// Create a transporter using Ethereal (free test email service)
-// No configuration needed - it just works!
-let transporter = null;
-
-const getTransporter = async () => {
-  if (!transporter) {
-    // Create a test account at https://ethereal.email (or use this one)
-    // You can also generate your own at https://ethereal.email
-    transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'emilia.hickle27@ethereal.email',
-        pass: 'YnQ6K76Qj6GNkXw5j3'
-      }
-    });
-    console.log('✅ Email transporter created (Ethereal)');
-  }
-  return transporter;
-};
 
 export const sendWelcomeEmail = async (userEmail, userName) => {
   console.log(`📧 Sending welcome email to: ${userEmail}`);
   
   try {
-    const transporter = await getTransporter();
+    if (!process.env.BREVO_API_KEY) {
+      throw new Error('Brevo API key not configured');
+    }
 
-    const info = await transporter.sendMail({
-      from: '"Cancer Support Africa" <noreply@cancersupport.africa>',
-      to: userEmail,
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+      sender: {
+        name: 'Cancer Support Africa',
+        email: 'africacancersupport@gmail.com'
+      },
+      to: [{
+        email: userEmail,
+        name: userName
+      }],
       subject: 'Welcome to Cancer Support Africa! 🌍 Together We Fight Cancer',
-      html: `
+      htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #dc2626, #ef4444); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
             <h1>Welcome, ${userName}!</h1>
@@ -64,7 +50,7 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
           </div>
         </div>
       `,
-      text: `
+      textContent: `
 Welcome to Cancer Support Africa, ${userName}!
 
 Thank you for joining our mission to fight cancer in Africa.
@@ -79,20 +65,20 @@ Visit our website: ${process.env.FRONTEND_URL || 'https://africa-cancer-support.
 Best regards,
 Cancer Support Africa Team
       `
+    }, {
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
     });
 
-    console.log('✅ Welcome email sent via Ethereal to:', userEmail);
-    console.log('📧 Preview URL:', nodemailer.getTestMessageUrl(info));
-    
-    return { 
-      success: true, 
-      messageId: info.messageId,
-      previewUrl: nodemailer.getTestMessageUrl(info)
-    };
+    console.log('✅ Welcome email sent via Brevo to:', userEmail);
+    return { success: true, messageId: response.data.messageId };
     
   } catch (error) {
-    console.error('❌ Email failed:', error.message);
-    return { success: false, error: error.message };
+    console.error('❌ Brevo email failed:', error.response?.data || error.message);
+    return { success: false, error: error.response?.data?.message || error.message };
   }
 };
 
@@ -100,19 +86,27 @@ export const sendDonationReceipt = async (userEmail, userName, amount, currency)
   console.log(`📧 Sending donation receipt to: ${userEmail}`);
   
   try {
-    const transporter = await getTransporter();
+    if (!process.env.BREVO_API_KEY) {
+      throw new Error('Brevo API key not configured');
+    }
 
-    const info = await transporter.sendMail({
-      from: '"Cancer Support Africa" <noreply@cancersupport.africa>',
-      to: userEmail,
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+      sender: {
+        name: 'Cancer Support Africa',
+        email: 'africacancersupport@gmail.com'
+      },
+      to: [{
+        email: userEmail,
+        name: userName
+      }],
       subject: 'Donation Receipt - Thank You! 🎗️',
-      html: `
+      htmlContent: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+          <div style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 30px; text-align: center;">
             <h1>Thank You, ${userName}!</h1>
             <p>Your generosity saves lives</p>
           </div>
-          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+          <div style="padding: 30px;">
             <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
               <h3>Donation Receipt</h3>
               <p><strong>Amount:</strong> ${amount} ${currency}</p>
@@ -122,7 +116,7 @@ export const sendDonationReceipt = async (userEmail, userName, amount, currency)
             
             <p>Your contribution will directly help cancer patients receive medical treatments, transportation, and nutritional support.</p>
             
-            <div style="text-align: center;">
+            <div style="text-align: center; margin-top: 30px;">
               <a href="${process.env.FRONTEND_URL || 'https://africa-cancer-support.onrender.com'}" style="display: inline-block; padding: 12px 30px; background: #059669; color: white; text-decoration: none; border-radius: 5px;">View Your Impact</a>
             </div>
             
@@ -131,7 +125,7 @@ export const sendDonationReceipt = async (userEmail, userName, amount, currency)
           </div>
         </div>
       `,
-      text: `
+      textContent: `
 Thank You, ${userName}!
 
 Donation Receipt
@@ -146,25 +140,32 @@ Thank you for being a part of this life-changing mission.
 Warm regards,
 Cancer Support Africa Team
       `
+    }, {
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
     });
 
-    console.log('✅ Donation receipt sent via Ethereal to:', userEmail);
-    return { success: true, messageId: info.messageId };
+    console.log('✅ Donation receipt sent via Brevo to:', userEmail);
+    return { success: true, messageId: response.data.messageId };
     
   } catch (error) {
-    console.error('❌ Donation receipt failed:', error.message);
-    return { success: false, error: error.message };
+    console.error('❌ Donation receipt failed:', error.response?.data || error.message);
+    return { success: false, error: error.response?.data?.message || error.message };
   }
 };
 
 export const testEmailConfig = async () => {
   try {
-    const transporter = await getTransporter();
-    await transporter.verify();
-    console.log('✅ Email service is ready');
+    if (!process.env.BREVO_API_KEY) {
+      throw new Error('Brevo API key not configured');
+    }
+    console.log('✅ Brevo API is ready to send real emails');
     return true;
   } catch (error) {
-    console.error('❌ Email error:', error.message);
+    console.error('❌ Brevo error:', error.message);
     return false;
   }
 };
