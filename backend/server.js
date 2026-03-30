@@ -15,6 +15,13 @@ dotenv.config();
 
 const app = express();
 
+const server = app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
+
+server.timeout = 120000; // 120 seconds
+
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -24,7 +31,7 @@ const limiter = rateLimit({
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL || 'https://your-app.onrender.com']
+    ? [process.env.FRONTEND_URL || 'https://africa-cancer-support.onrender.com']
     : ['http://localhost:5173', 'http://localhost:5000', 'http://127.0.0.1:5173'],
   credentials: true,
   optionsSuccessStatus: 200,
@@ -80,8 +87,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
+/// MongoDB connection with optimized settings
+mongoose.connect(process.env.MONGODB_URI, {
+  maxPoolSize: 10, // Limit connections
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
