@@ -1,15 +1,14 @@
-import * as SibApiV3Sdk from '@getbrevo/brevo';
 import dotenv from 'dotenv';
+import { TransactionalEmailsApi, SendSmtpEmail } from '@getbrevo/brevo';
 
 dotenv.config();
 
-// Configure Brevo API
 let apiInstance = null;
 
 const getApiInstance = () => {
   if (!apiInstance && process.env.BREVO_API_KEY) {
-    apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-    apiInstance.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+    apiInstance = new TransactionalEmailsApi();
+    apiInstance.setApiKey(0, process.env.BREVO_API_KEY);
     console.log('✅ Brevo configured successfully');
   }
   return apiInstance;
@@ -25,7 +24,7 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
       throw new Error('Brevo API key not configured');
     }
 
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    const sendSmtpEmail = new SendSmtpEmail();
     
     sendSmtpEmail.subject = 'Welcome to Cancer Support Africa! 🌍 Together We Fight Cancer';
     sendSmtpEmail.htmlContent = `
@@ -110,7 +109,7 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
             <p>Your commitment to helping cancer patients across Africa is truly inspiring. We're excited to have you on board!</p>
             
             <div class="info-box">
-              <strong>💡 Did you know?</strong> Early detection increases cancer survival rates by up to 90% in Africa. Your support helps us educate communities about early detection.
+              <strong>💡 Did you know?</strong> Early detection increases cancer survival rates by up to 90% in Africa.
             </div>
             
             <h3>What's Next?</h3>
@@ -145,11 +144,11 @@ export const sendWelcomeEmail = async (userEmail, userName) => {
     
     const response = await api.sendTransacEmail(sendSmtpEmail);
     console.log('✅ Welcome email sent via Brevo to:', userEmail);
-    console.log('📧 Message ID:', response.messageId);
     return { success: true, messageId: response.messageId };
     
   } catch (error) {
     console.error('❌ Brevo email failed:', error.message);
+    console.error('Error details:', error.response?.body || error);
     return { success: false, error: error.message };
   }
 };
@@ -164,7 +163,7 @@ export const sendDonationReceipt = async (userEmail, userName, amount, currency)
       throw new Error('Brevo API key not configured');
     }
 
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    const sendSmtpEmail = new SendSmtpEmail();
     
     sendSmtpEmail.subject = 'Donation Receipt - Thank You! 🎗️';
     sendSmtpEmail.htmlContent = `
