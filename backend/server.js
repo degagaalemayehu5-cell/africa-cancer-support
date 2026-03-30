@@ -1,3 +1,4 @@
+import nodemailer from 'nodemailer';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -57,6 +58,84 @@ app.get('/api/health', (req, res) => {
     message: 'Cancer Support Africa API is running',
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+
+// Test email configuration endpoint
+app.get('/api/check-email-config', (req, res) => {
+  console.log('=== Email Configuration Check ===');
+  console.log('EMAIL_USER:', process.env.EMAIL_USER);
+  console.log('EMAIL_HOST:', process.env.EMAIL_HOST);
+  console.log('EMAIL_PORT:', process.env.EMAIL_PORT);
+  console.log('EMAIL_PASS exists:', !!process.env.EMAIL_PASS);
+  console.log('EMAIL_PASS length:', process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0);
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  
+  res.json({
+    success: true,
+    config: {
+      EMAIL_USER: process.env.EMAIL_USER,
+      EMAIL_HOST: process.env.EMAIL_HOST,
+      EMAIL_PORT: process.env.EMAIL_PORT,
+      EMAIL_PASS_SET: !!process.env.EMAIL_PASS,
+      EMAIL_PASS_LENGTH: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.length : 0,
+      NODE_ENV: process.env.NODE_ENV
+    }
+  });
+});
+
+// Test send email endpoint
+app.get('/api/test-send-email', async (req, res) => {
+  console.log('=== Testing Send Email ===');
+  
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.EMAIL_PORT) || 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+    
+    // Verify connection
+    await transporter.verify();
+    console.log('✅ SMTP connection verified');
+    
+    // Send test email
+    const info = await transporter.sendMail({
+      from: `"Cancer Support Africa Test" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_USER,
+      subject: 'Test Email from Render - Cancer Support Africa',
+      text: 'If you receive this email, your email configuration on Render is working correctly!',
+      html: '<h1>✅ Email Working!</h1><p>Your email configuration on Render is correct.</p><p>Time: ' + new Date().toISOString() + '</p>'
+    });
+    
+    console.log('✅ Test email sent successfully!');
+    console.log('Message ID:', info.messageId);
+    
+    res.json({
+      success: true,
+      message: 'Test email sent successfully!',
+      messageId: info.messageId,
+      to: process.env.EMAIL_USER
+    });
+  } catch (error) {
+    console.error('❌ Test email failed:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error command:', error.command);
+    
+    res.json({
+      success: false,
+      error: error.message,
+      code: error.code,
+      command: error.command
+    });
+  }
 });
 
 // Serve static files in production
