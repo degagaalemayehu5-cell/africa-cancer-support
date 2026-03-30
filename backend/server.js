@@ -59,6 +59,28 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development'
   });
 });
+ 
+// Test Brevo email endpoint
+app.get('/api/test-brevo', async (req, res) => {
+  console.log('=== Testing Brevo Email ===');
+  
+  try {
+    const { sendWelcomeEmail } = await import('./utils/emailService.js');
+    const result = await sendWelcomeEmail(
+      process.env.BREVO_FROM_EMAIL || 'africacancersupport@gmail.com',
+      'Test User'
+    );
+    
+    if (result.success) {
+      res.json({ success: true, message: 'Test email sent! Check your inbox.', messageId: result.messageId });
+    } else {
+      res.json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('Test endpoint error:', error);
+    res.json({ success: false, error: error.message });
+  }
+});
 
 app.get('/api/test-resend', async (req, res) => {
   try {
