@@ -15,11 +15,6 @@ dotenv.config();
 
 const app = express();
 
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
-
-server.timeout = 120000; // 120 seconds
 
 
 // Rate limiting
@@ -104,3 +99,4 @@ app.listen(PORT, () => {
     console.log(`🌐 Serving frontend from: /app/frontend/dist`);
   }
 });
+
