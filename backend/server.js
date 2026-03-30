@@ -60,6 +60,21 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.get('/api/test-resend', async (req, res) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+      to: [process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'],
+      subject: 'Resend Test - Cancer Support Africa',
+      html: '<h1>✅ Resend Working!</h1><p>Your email is configured correctly on Render.</p>'
+    });
+
+    if (error) throw new Error(error.message);
+    res.json({ success: true, messageId: data?.id });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
 
 // Test email configuration endpoint
 app.get('/api/check-email-config', (req, res) => {
