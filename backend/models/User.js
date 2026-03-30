@@ -53,11 +53,11 @@ const userSchema = new mongoose.Schema({
   },
   idPhotoUrl: {
     type: String,
-    required: [true, 'ID photo is required']
+    default: '' // Not required initially for two-step registration
   },
   idPhotoPublicId: {
     type: String,
-    required: true
+    default: '' // Not required initially for two-step registration
   },
   role: {
     type: String,
@@ -88,8 +88,8 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'active', 'suspended', 'inactive'],
-    default: 'pending'
+    enum: ['pending_upload', 'pending', 'active', 'suspended', 'inactive'],
+    default: 'pending_upload' // Changed from 'pending' to 'pending_upload' for two-step process
   },
   totalDonations: {
     type: Number,
@@ -132,6 +132,11 @@ userSchema.methods.isVerified = function() {
   return this.verified === true && this.status === 'active';
 };
 
+// Method to check if user has uploaded ID
+userSchema.methods.hasUploadedId = function() {
+  return this.idPhotoUrl && this.idPhotoUrl !== '';
+};
+
 // Method to get user display name
 userSchema.methods.getDisplayName = function() {
   return this.fullName;
@@ -161,6 +166,14 @@ userSchema.statics.findActiveVolunteers = function() {
   }).select('-idPhotoUrl -idPhotoPublicId');
 };
 
+// Static method to find users pending ID upload
+userSchema.statics.findPendingUpload = function() {
+  return this.find({ 
+    status: 'pending_upload',
+    createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Older than 24 hours
+  });
+};
+
 // Static method to get statistics
 userSchema.statics.getStats = async function() {
   const stats = await this.aggregate([
@@ -171,6 +184,19 @@ userSchema.statics.getStats = async function() {
         verifiedCount: { 
           $sum: { $cond: [{ $eq: ['$verified', true] }, 1, 0] }
         }
+      }
+    }
+  ]);
+  return stats;
+};
+
+// Static method to get registration stats
+userSchema.statics.getRegistrationStats = async function() {
+  const stats = await this.aggregate([
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 }
       }
     }
   ]);
